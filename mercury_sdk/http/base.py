@@ -23,11 +23,16 @@ class InterfaceBase(object):
     """ Base HTTP Interface class """
     SERVICE_URI = ''
 
-    def __init__(self, target, max_items=100):
+    def __init__(self, target, max_items=100, additional_headers=None):
         """ Base Constructor
 
         :param target: URL and base URI of the target service
         :param max_items: The default maximum items to request for endpoints
+        :param additional_headers: Additional headers to pass on, such as
+        auth tokens.
+        .. note:
+
+            These can also be added for each request
         that support pagination.
         """
         self.target = target
@@ -37,6 +42,9 @@ class InterfaceBase(object):
             self.base_url = self.target
 
         self.headers = {'Content-type': 'application/json'}
+
+        if additional_headers:
+            self.headers.update(additional_headers)
 
         self.max_items = max_items
 
@@ -51,17 +59,48 @@ class InterfaceBase(object):
             return self.base_url
         return self.base_url + '/' + endpoint.lstrip('/')
 
-    def append_header(self, extra_headers):
+    def get_per_request_headers(self, extra_request_headers):
         """
 
+        :param extra_request_headers:
+        :return:
+        """
+        if not extra_request_headers:
+            return self.headers
+
+        per_request_headers = self.headers.copy()
+        per_request_headers.update(extra_request_headers)
+        return per_request_headers
+
+    @check_error
+    def _request(self,
+                 method,
+                 item='',
+                 data=None,
+                 params=None,
+                 extra_headers=None):
+        """
+
+        :param method:
+        :param item:
+        :param data:
+        :param params:
         :param extra_headers:
         :return:
         """
-        if not extra_headers:
-            return self.headers
-        return extra_headers.update(self.headers)
 
-    @check_error
+        if data is not None:
+            data = json.dumps(data)
+
+        r = requests.request(method,
+                             self.join_endpoint(item),
+                             params=params,
+                             data=data,
+                             headers=self.get_per_request_headers(
+                                 extra_headers))
+        r.raise_for_status()
+        return r.json()
+
     def get(self, item='', params=None, extra_headers=None):
         """
 
@@ -70,12 +109,9 @@ class InterfaceBase(object):
         :param extra_headers:
         :return:
         """
-        r = requests.get(self.join_endpoint(item), params=params,
-                         headers=self.append_header(extra_headers))
-        r.raise_for_status()
-        return r.json()
+        return self._request('get', item, params=params,
+                             extra_headers=extra_headers)
 
-    @check_error
     def post(self, item='', data=None, params=None, extra_headers=None):
         """
 
@@ -85,9 +121,6 @@ class InterfaceBase(object):
         :param extra_headers:
         :return:
         """
-        r = requests.post(self.join_endpoint(item), params=params,
-                          data=json.dumps(data),
-                          headers=self.append_header(extra_headers))
-        r.raise_for_status()
-        return r.json()
+        return self._request('post', item, data=data, params=params,
+                             extra_headers=extra_headers)
 
