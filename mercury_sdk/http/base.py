@@ -53,6 +53,7 @@ class InterfaceBase(object):
         :param endpoint:
         :return:
         """
+        endpoint = endpoint or ''
         endpoint = endpoint.strip('/')
         if not endpoint:
             # endpoint is base_url
