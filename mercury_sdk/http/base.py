@@ -1,5 +1,9 @@
+import logging
 import json
 import requests
+
+
+log = logging.getLogger(__name__)
 
 
 def check_error(f):
@@ -110,6 +114,8 @@ class InterfaceBase(object):
         :param extra_headers:
         :return:
         """
+        log.debug(f' PARAMS: {params}')
+
         return self._request('get', item, params=params,
                              extra_headers=extra_headers)
 

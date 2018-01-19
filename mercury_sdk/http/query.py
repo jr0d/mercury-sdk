@@ -1,4 +1,4 @@
-from mercury_sdk.http.base import check_error, InterfaceBase
+from mercury_sdk.http.base import InterfaceBase
 
 
 class QueryInterfaceBase(InterfaceBase):
@@ -12,7 +12,6 @@ class QueryInterfaceBase(InterfaceBase):
         :param projection:
         :return:
         """
-        params = params or {}
         params.update({'projection': ','.join(projection)})
 
     def get(self, mercury_id=None, projection=None, params=None,
@@ -25,6 +24,9 @@ class QueryInterfaceBase(InterfaceBase):
         :param extra_headers:
         :return:
         """
+
+        params = params or {}
+
         if projection:
             self.set_projection(params, projection)
 
@@ -43,6 +45,9 @@ class QueryInterfaceBase(InterfaceBase):
         :param extra_headers:
         :return:
         """
+
+        params = params or {}
+
         if projection:
             self.set_projection(params, projection)
 
