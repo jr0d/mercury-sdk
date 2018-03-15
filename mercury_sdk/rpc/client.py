@@ -1,11 +1,8 @@
 import logging
 
+from mercury_sdk.rpc.job import Job
 
 log = logging.getLogger(__name__)
-
-
-class RPCException(Exception):
-    pass
 
 
 class RPCClient(object):
@@ -13,20 +10,7 @@ class RPCClient(object):
         self.client = rpc_interface
 
     def create_job(self, query, method, *args, **kwargs):
-        r = self.client.post(data={
-            'query': query,
-            'instruction': {
-                'method': method,
-                'args': args,
-                'kwargs': kwargs
-            }
-        })
-
-        if r.get('error'):
-            raise RPCException(r['data']['message'])
-
-        # Return Job object
-        return r['job_id']
+        return Job(self.client, query, method, args, kwargs)
 
     def preprocessor(self):
         """ Use a preprocessor """
