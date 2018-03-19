@@ -1,0 +1,7 @@
+{
+  "method": "hp_update_firmware",
+  "kwargs": {
+    "url": "http://10.192.0.44/tftpboot/hpiso/hpfirmware.tar.gz",
+    "dry_run": true
+  }
+}

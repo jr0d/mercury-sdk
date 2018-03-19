@@ -27,7 +27,8 @@ class InterfaceBase(object):
     """ Base HTTP Interface class """
     SERVICE_URI = ''
 
-    def __init__(self, target, max_items=100, additional_headers=None):
+    def __init__(self, target, max_items=100, additional_headers=None,
+                 verify_ssl=True):
         """ Base Constructor
 
         :param target: URL and base URI of the target service
@@ -51,6 +52,7 @@ class InterfaceBase(object):
             self.headers.update(additional_headers)
 
         self.max_items = max_items
+        self.verify_ssl = verify_ssl
 
     def join_endpoint(self, endpoint):
         """
@@ -102,7 +104,8 @@ class InterfaceBase(object):
                              params=params,
                              data=data,
                              headers=self.get_per_request_headers(
-                                 extra_headers))
+                                 extra_headers),
+                             verify=self.verify_ssl)
         r.raise_for_status()
         return r.json()
 
