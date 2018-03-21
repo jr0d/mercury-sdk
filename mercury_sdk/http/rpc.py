@@ -30,3 +30,13 @@ class JobInterfaceBase(InterfaceBase):
         :return:
         """
         return self.get('/tasks/{}'.format(job_id))
+
+    def submit(self, query, instruction):
+        """
+
+        :param query:
+        :param instruction:
+        :return:
+        """
+        return self.post(item=None,
+                         data={'query': query, 'instruction': instruction})
