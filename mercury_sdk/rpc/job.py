@@ -9,20 +9,17 @@ class RPCException(Exception):
 
 
 class Job(object):
-    def __init__(self, rpc_client, query, method, job_args, job_kwargs):
+    def __init__(self, rpc_client, query, instruction):
         """
 
         :param rpc_client:
         :param query:
-        :param method:
-        :param job_args:
-        :param job_kwargs:
+        :param instruction:
+
         """
         self.rpc_client = rpc_client
         self.query = query
-        self.method = method
-        self.job_args = job_args
-        self.job_kw = job_kwargs
+        self.instruction = instruction
 
         self.job_id = None
 
@@ -35,11 +32,7 @@ class Job(object):
         """ Start the job """
         r = self.rpc_client.post(data={
             'query': self.query,
-            'instruction': {
-                'method': self.method,
-                'args': self.job_args,
-                'kwargs': self.job_kw
-            }
+            'instruction': self.instruction
         })
 
         if r.get('error'):
@@ -87,18 +80,40 @@ class Job(object):
                 time.sleep(poll_interval)
 
 
-if __name__ == '__main__':
-    from mercury_sdk.http.rpc import JobInterfaceBase
+class SimpleJob(Job):
+    """ Creates an instruction in the standard form """
+    def __init__(self, rpc_client, query, method, job_args=None,
+                 job_kwargs=None):
+        """
 
-    interface = JobInterfaceBase(
-        'http://mercury.dcx.rackspace.com:9005')
-    j = Job(interface,
-            {},
-            'echo',
-            ('Hello World!',),
-            {})
-    print(j.started)
-    print(j.status)
-    j.start()
-    from pprint import pprint
-    pprint(j.join())
+        :param rpc_client:
+        :param query:
+        :param method:
+        :param job_args:
+        :param job_kwargs:
+        """
+        self.method = method
+        self.job_args = job_args or ()
+        self.job_kw = job_kwargs or {}
+
+        super(SimpleJob, self).__init__(rpc_client, query, instruction={
+            'method': self.method,
+            'args': self.job_args,
+            'kwargs': self.job_kw
+        })
+
+
+class Preprocessor(Job):
+    def __init__(self, rpc_client, query, preprocessor, payload):
+        """
+
+        :param rpc_client:
+        :param query:
+        :param preprocessor:
+        :param payload:
+        """
+        self.preprocessor = preprocessor
+
+        instruction = {'preprocessor': self.preprocessor}
+        instruction.update(payload)
+        super(Preprocessor, self).__init__(rpc_client, query, instruction)
