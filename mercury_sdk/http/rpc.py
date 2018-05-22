@@ -21,7 +21,7 @@ class JobInterfaceBase(InterfaceBase):
         :param job_id:
         :return:
         """
-        return self.get('/status/{}'.format(job_id))
+        return self.get('/{}/status'.format(job_id))
 
     def tasks(self, job_id):
         """
@@ -29,7 +29,7 @@ class JobInterfaceBase(InterfaceBase):
         :param job_id:
         :return:
         """
-        return self.get('/tasks/{}'.format(job_id))
+        return self.get('/{}/tasks'.format(job_id))
 
     def submit(self, query, instruction):
         """
