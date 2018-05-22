@@ -27,7 +27,7 @@ class InterfaceBase(object):
     """ Base HTTP Interface class """
     SERVICE_URI = ''
 
-    def __init__(self, target, max_items=100, additional_headers=None,
+    def __init__(self, target, max_items=100, auth_token=None, additional_headers=None,
                  verify_ssl=True):
         """ Base Constructor
 
@@ -48,6 +48,8 @@ class InterfaceBase(object):
 
         self.headers = {'Content-type': 'application/json'}
 
+        if auth_token:
+            self.headers.update({'X-Auth-Token': auth_token})
         if additional_headers:
             self.headers.update(additional_headers)
 
