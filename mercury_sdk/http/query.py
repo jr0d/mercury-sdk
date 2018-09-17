@@ -34,8 +34,15 @@ class QueryInterfaceBase(InterfaceBase):
                                                    params=params,
                                                    extra_headers=extra_headers)
 
+    @staticmethod
+    def strip_empty(items):
+        for item in items:
+            for key in item:
+                if isinstance(item[key], list):
+                    item[key] = [el for el in item[key] if el]
+
     def query(self, query, item='/query', projection=None, params=None,
-              extra_headers=None):
+              extra_headers=None, strip_empty_elements=False):
         """
 
         :param query:
@@ -43,6 +50,7 @@ class QueryInterfaceBase(InterfaceBase):
         :param projection:
         :param params:
         :param extra_headers:
+        :param strip_empty_elements:
         :return:
         """
 
@@ -51,5 +59,10 @@ class QueryInterfaceBase(InterfaceBase):
         if projection:
             self.set_projection(params, projection)
 
-        return self.post(item, data={'query': query}, params=params,
+        data = self.post(item, data={'query': query}, params=params,
                          extra_headers=extra_headers)
+
+        if strip_empty_elements:
+            self.strip_empty(data['items'])
+
+        return data
