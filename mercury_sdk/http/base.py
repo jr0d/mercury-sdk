@@ -27,8 +27,8 @@ class InterfaceBase(object):
     """ Base HTTP Interface class """
     SERVICE_URI = ''
 
-    def __init__(self, target, max_items=100, auth_token=None, additional_headers=None,
-                 verify_ssl=True):
+    def __init__(self, target, max_items=100, auth_token=None,
+                 additional_headers=None, verify_ssl=True):
         """ Base Constructor
 
         :param target: URL and base URI of the target service
