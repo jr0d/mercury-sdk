@@ -2,7 +2,6 @@ import logging
 import json
 import requests
 
-
 log = logging.getLogger(__name__)
 
 
@@ -14,11 +13,15 @@ def check_error(f):
             return f(*args, **kwargs)
         except requests.exceptions.HTTPError as http_error:
             try:
+                log.exception('Encountered an HTTP exception')
                 data = http_error.response.json()
             except ValueError:
                 data = http_error.response.text
-            return {'error': True, 'code': http_error.response.status_code,
-                    'data': data}
+            _response = {'error': True,
+                         'code': http_error.response.status_code,
+                         'data': data}
+            log.debug('Response: %s', _response)
+            return _response
 
     return wrapper
 
@@ -101,15 +104,20 @@ class InterfaceBase(object):
         if data is not None:
             data = json.dumps(data)
 
+        headers = self.get_per_request_headers(extra_headers)
+        log.debug('Request: method=%s url=%s endpoint=%s params=%s data=%s '
+                  'headers=%s', method, self.base_url, item, params, data,
+                  headers)
         r = requests.request(method,
                              self.join_endpoint(item),
                              params=params,
                              data=data,
-                             headers=self.get_per_request_headers(
-                                 extra_headers),
+                             headers=headers,
                              verify=self.verify_ssl)
         r.raise_for_status()
-        return r.json()
+        _response = r.json()
+        log.debug('Response: %s', _response)
+        return _response
 
     def get(self, item='', params=None, extra_headers=None):
         """
@@ -119,8 +127,6 @@ class InterfaceBase(object):
         :param extra_headers:
         :return:
         """
-        log.debug(f' PARAMS: {params}')
-
         return self._request('get', item, params=params,
                              extra_headers=extra_headers)
 
@@ -135,4 +141,3 @@ class InterfaceBase(object):
         """
         return self._request('post', item, data=data, params=params,
                              extra_headers=extra_headers)
-
