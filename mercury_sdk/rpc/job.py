@@ -36,6 +36,8 @@ class Job(object):
         })
 
         if r.get('error'):
+            if isinstance(r['data'], str):
+                raise RPCException(r['data'])
             raise RPCException(r['data']['message'])
 
         self.job_id = r['job_id']
