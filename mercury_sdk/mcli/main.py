@@ -99,8 +99,10 @@ def options():
     shell_parser = subparsers.add_parser(
         'shell',
         help='Enter a shell for interactive inventory management')
-    shell_parser.add_argument('-q', '--query', default='{}',
+    shell_parser.add_argument('-q', '--query', default=None,
                               help='Set the initial target query for the shell')
+    shell_parser.add_argument('-t', '--target', default=None,
+                              help='The mercury_id of a single target')
 
     namespace = parser.parse_args()
     if namespace.version:
@@ -146,12 +148,21 @@ def router(command, configuration):
 
     if command == 'shell':
         rpc_client = operations.get_rpc_client(configuration, token)
-        try:
-            query = json.loads(configuration['query'])
-        except ValueError:
-            output.print_and_exit('query is not valid JSON')
+        query = configuration.get('query')
+        target = configuration.get('target')
+        if query:
+            try:
+                target_query = json.loads(configuration['query'])
+            except ValueError:
+                output.print_and_exit('query is not valid JSON')
+                return
+        elif target:
+            target_query = {'mercury_id': target.strip()}
+        else:
+            output.print_and_exit('Must provide a query or target')
             return
-        mshell = shell.MercuryShell(rpc_client, initial_query=query)
+
+        mshell = shell.MercuryShell(rpc_client, initial_query=target_query)
         mshell.input_loop()
 
 

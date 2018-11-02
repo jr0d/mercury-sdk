@@ -8,6 +8,7 @@ from mercury_sdk.rpc.job import SimpleJob
 PROMPT = f'{colorama.Style.BRIGHT}{colorama.Fore.LIGHTBLUE_EX}(♀)︎{colorama.Fore.MAGENTA}~>' \
          f'{colorama.Style.RESET_ALL} '
 
+
 class MercuryShell:
     """ Ridiculously simple shell (no readline support) """
     def __init__(self, rpc_client, prompt=PROMPT, initial_query=None):
@@ -38,11 +39,13 @@ class MercuryShell:
                 print('THIS IS A SHELL ESCAPE: {}'.format(instruction[1:]))
                 continue
 
+            instruction = 'bash -c "{}"'.format(instruction)
             s = SimpleJob(self.rpc_client, self.query, 'run', job_args=[instruction])
             s.start()
             s.join(poll_interval=.2)
 
             for t in s.tasks['tasks']:
+                print(f'{colorama.Fore.GREEN}{t["mercury_id"]}:{colorama.Style.RESET_ALL}\n')
                 stdout = t['message']['stdout']
                 if stdout:
                     print(stdout)
