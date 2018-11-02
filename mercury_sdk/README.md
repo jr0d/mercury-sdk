@@ -5,7 +5,7 @@ interacts with Mercury.
 
 # Installation
 
-$ pip install 
+$ pip install mercury-sdk
 
 # Using the command line utility
 

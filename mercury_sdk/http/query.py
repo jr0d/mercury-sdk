@@ -29,7 +29,6 @@ class QueryInterfaceBase(InterfaceBase):
 
         if projection:
             self.set_projection(params, projection)
-
         return super(QueryInterfaceBase, self).get(item=mercury_id,
                                                    params=params,
                                                    extra_headers=extra_headers)

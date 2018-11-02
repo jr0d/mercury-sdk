@@ -88,10 +88,14 @@ def options():
                                  'Use "-" and the value will be read from '
                                  'stdout use "@filename" and the query will be '
                                  'read from this file')
-    inv_parser.add_argument('-p', '--projection', default='mercury_id',
+    inv_parser.add_argument('-p', '--projection', default='',
                             help='Specify the key projection to produce the '
                                  'desired output')
-    inv_parser.add_argument('--max-items', default=100)
+    inv_parser.add_argument('-n', '--max-items', default=100)
+    inv_parser.add_argument('-a', '--active', help='Only search for active devices',
+                            action='store_true')
+    inv_parser.add_argument('mercury_id', default=None, nargs='?',
+                            help='Get a device record by mercury_id')
 
     # rpc
 
@@ -144,7 +148,10 @@ def router(command, configuration):
 
     if command == 'inventory':
         inv_client = operations.get_inventory_client(configuration, token)
-        print(operations.query_inventory(inv_client, configuration))
+        if configuration.get('mercury_id'):
+            print(operations.get_inventory(inv_client, configuration))
+        else:
+            print(operations.query_inventory(inv_client, configuration))
 
     if command == 'shell':
         rpc_client = operations.get_rpc_client(configuration, token)

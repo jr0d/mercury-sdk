@@ -19,6 +19,9 @@ def query_inventory(client, configuration):
         output.print_and_exit('Query is not valid json', 1)
         return
 
+    if configuration.get('active'):
+        query.update({'active': {'$ne': None}})
+
     data = client.query(
         query,
         projection=configuration['projection'].split(','),
@@ -26,6 +29,12 @@ def query_inventory(client, configuration):
         strip_empty_elements=True
     )
 
+    return json.dumps(data, indent=2)
+
+
+def get_inventory(client, configuration):
+    data = client.get(configuration['mercury_id'],
+                      projection=configuration['projection'].split(','))
     return json.dumps(data, indent=2)
 
 
