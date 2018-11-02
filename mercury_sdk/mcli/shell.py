@@ -45,7 +45,9 @@ class MercuryShell:
             s.join(poll_interval=.2)
 
             for t in s.tasks['tasks']:
-                print(f'{colorama.Fore.GREEN}{t["mercury_id"]}:{colorama.Style.RESET_ALL}\n')
+                co = colorama.Fore.CYAN if t['message']['returncode'] == 0 \
+                    else colorama.Fore.LIGHTRED_EX
+                print(f'{co}{t["mercury_id"]}{colorama.Style.RESET_ALL}\n')
                 stdout = t['message']['stdout']
                 if stdout:
                     print(stdout)
