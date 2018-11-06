@@ -49,7 +49,7 @@ def get_token(configuration, token_path):
                 token_data['expires_at']):
             return token_data
         else:
-            LOG.info('Token expired at: {}'.format(token_data['expired_at']))
+            LOG.info('Token expired at: {}'.format(token_data['expires_at']))
             os.remove(token_path)
 
     LOG.info('Auth handler: {}'.format(configuration['auth_handler']))

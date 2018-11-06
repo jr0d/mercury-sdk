@@ -92,12 +92,11 @@ def options():
                             help='Specify the key projection to produce the '
                                  'desired output')
     inv_parser.add_argument('-n', '--max-items', default=100)
-    inv_parser.add_argument('-a', '--active', help='Only search for active devices',
+    inv_parser.add_argument('-a', '--active',
+                            help='Only search for active devices',
                             action='store_true')
     inv_parser.add_argument('mercury_id', default=None, nargs='?',
                             help='Get a device record by mercury_id')
-
-    # rpc
 
     # shell
     shell_parser = subparsers.add_parser(
@@ -107,6 +106,10 @@ def options():
                               help='Set the initial target query for the shell')
     shell_parser.add_argument('-t', '--target', default=None,
                               help='The mercury_id of a single target')
+    shell_parser.add_argument('-r', '--run', default=None,
+                              help='Instead of entering the shell,'
+                                   'run the command, print the result, and '
+                                   'exit')
 
     namespace = parser.parse_args()
     if namespace.version:
@@ -170,7 +173,11 @@ def router(command, configuration):
             return
 
         mshell = shell.MercuryShell(rpc_client, initial_query=target_query)
-        mshell.input_loop()
+
+        if configuration.get('run'):
+            mshell.run_job(configuration.get('run').strip())
+        else:
+            mshell.input_loop()
 
 
 def main():
