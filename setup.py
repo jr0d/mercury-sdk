@@ -12,13 +12,18 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-from setuptools import setup, find_packages
+from setuptools import setup
+
+
+def get_version():
+    with open('VERSION') as fp:
+        return fp.read().strip()
 
 
 setup(
     name='mercury-sdk',
-    version='0.0.2',
-    packages=find_packages(exclude=['tests']),
+    version=get_version(),
+    packages=['mercury_sdk'],
     url='http://www.mercurysoft.io',
     license='Apache-2.0',
     author='Jared Rodriguez',
@@ -27,10 +32,13 @@ setup(
     install_requires=[
         'requests',
         'PyYaml',
+        'cmd2',
+        'python-dateutil',
+        'colorama'
     ],
     entry_points={
        'console_scripts': [
+           'mcli=mercury_sdk.mcli.main:main'
        ]
     }
 )
-
