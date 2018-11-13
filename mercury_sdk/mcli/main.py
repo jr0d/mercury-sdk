@@ -105,7 +105,7 @@ def options():
     )
     rpc_subparsers = rpc_parser.add_subparsers(dest='rpc_command')
     rpc_submit_parser = rpc_subparsers.add_parser('submit',
-                                                  help='submit a job')
+                                                  help='Submit a job')
     rpc_submit_parser.add_argument('-q', '--query',
                                    help='A mercury query to execute in valid JSON. '
                                         'Use "-" and the value will be read from '
@@ -117,7 +117,15 @@ def options():
     rpc_submit_parser.add_argument('-m', '--method', help='the RPC to run')
     rpc_submit_parser.add_argument('-a', '--args', nargs='+')
     rpc_submit_parser.add_argument('-k', '--kwargs', default='{}')
+    rpc_submit_parser.add_argument('-w', '--wait', action='store_true',
+                                   help='Wait for the job to complete and print the results')
 
+    rpc_job_parser = rpc_subparsers.add_parser('job', help='Get information about a job')
+    rpc_job_parser.add_argument('job_id', help='A mercury job_id')
+    rpc_job_parser.add_argument('-s', '--status', action='store_true',
+                                help='Get status information for tasks')
+    rpc_job_parser.add_argument('-t', '--tasks', action='store_true',
+                                help='Get task data')
     # shell
     shell_parser = subparsers.add_parser(
         'shell',
@@ -199,13 +207,30 @@ def router(command, configuration):
         return _rpc_client, _target_query
 
     if command == 'rpc':
-        rpc_client, target_query = _prepare_rpc()
-        kwargs = json.loads(configuration['kwargs'])
-        print(operations.make_rpc_call(rpc_client,
-                                       target_query,
-                                       configuration['method'],
-                                       configuration['args'],
-                                       kwargs))
+        rpc_command = configuration['rpc_command']
+        if rpc_command == 'submit':
+            rpc_client, target_query = _prepare_rpc()
+            kwargs = json.loads(configuration['kwargs'])
+            print(operations.make_rpc(rpc_client,
+                                      target_query,
+                                      configuration['method'],
+                                      configuration['args'],
+                                      kwargs,
+                                      wait=configuration.get('wait')))
+        if rpc_command == 'job':
+            if configuration['tasks'] and configuration['status']:
+                output.print_and_exit('--tasks cannot be combined with --status')
+
+            rpc_client = operations.get_rpc_client(configuration, token)
+
+            if configuration['tasks']:
+                data = operations.get_tasks(rpc_client, configuration['job_id'])
+            elif configuration['status']:
+                data = operations.get_status(rpc_client, configuration['job_id'])
+            else:
+                data = operations.get_job(rpc_client, configuration['job_id'])
+
+            print(data)
 
     if command == 'shell':
         rpc_client, target_query = _prepare_rpc()
