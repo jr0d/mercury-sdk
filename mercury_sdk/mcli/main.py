@@ -98,6 +98,26 @@ def options():
     inv_parser.add_argument('mercury_id', default=None, nargs='?',
                             help='Get a device record by mercury_id')
 
+    # rpc
+    rpc_parser = subparsers.add_parser(
+        'rpc',
+        help='RPC commands'
+    )
+    rpc_subparsers = rpc_parser.add_subparsers(dest='rpc_command')
+    rpc_submit_parser = rpc_subparsers.add_parser('submit',
+                                                  help='submit a job')
+    rpc_submit_parser.add_argument('-q', '--query',
+                                   help='A mercury query to execute in valid JSON. '
+                                        'Use "-" and the value will be read from '
+                                        'stdout use "@filename" and the query will be '
+                                        'read from this file'
+                                   )
+    rpc_submit_parser.add_argument('-t', '--target',
+                                   help='A single mercury id to run the command on')
+    rpc_submit_parser.add_argument('-m', '--method', help='the RPC to run')
+    rpc_submit_parser.add_argument('-a', '--args', nargs='+')
+    rpc_submit_parser.add_argument('-k', '--kwargs', default='{}')
+
     # shell
     shell_parser = subparsers.add_parser(
         'shell',
@@ -110,6 +130,10 @@ def options():
                               help='Instead of entering the shell,'
                                    'run the command, print the result, and '
                                    'exit')
+    shell_parser.add_argument('--quiet', default=False, action='store_true',
+                              help='Suppress command output')
+    shell_parser.add_argument('--raw', default=False, action='store_true',
+                              help='Do not print agent info, only the raw command output')
 
     namespace = parser.parse_args()
     if namespace.version:
@@ -156,23 +180,38 @@ def router(command, configuration):
         else:
             print(operations.query_inventory(inv_client, configuration))
 
-    if command == 'shell':
-        rpc_client = operations.get_rpc_client(configuration, token)
+    def _prepare_rpc():
+        _rpc_client = operations.get_rpc_client(configuration, token)
         query = configuration.get('query')
         target = configuration.get('target')
         if query:
             try:
-                target_query = json.loads(configuration['query'])
+                _target_query = json.loads(configuration['query'])
             except ValueError:
                 output.print_and_exit('query is not valid JSON')
                 return
         elif target:
-            target_query = {'mercury_id': target.strip()}
+            _target_query = {'mercury_id': target.strip()}
         else:
             output.print_and_exit('Must provide a query or target')
             return
 
-        mshell = shell.MercuryShell(rpc_client, initial_query=target_query)
+        return _rpc_client, _target_query
+
+    if command == 'rpc':
+        rpc_client, target_query = _prepare_rpc()
+        kwargs = json.loads(configuration['kwargs'])
+        print(operations.make_rpc_call(rpc_client,
+                                       target_query,
+                                       configuration['method'],
+                                       configuration['args'],
+                                       kwargs))
+
+    if command == 'shell':
+        rpc_client, target_query = _prepare_rpc()
+
+        mshell = shell.MercuryShell(rpc_client, initial_query=target_query,
+                                    quiet=configuration['quiet'], raw=configuration['raw'])
 
         if configuration.get('run'):
             mshell.run_job(configuration.get('run').strip())
