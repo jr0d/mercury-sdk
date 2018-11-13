@@ -42,3 +42,14 @@ def get_rpc_client(configuration, token=None):
     return rpc.JobInterfaceBase(
         configuration['mercury_url'],
         auth_token=token)
+
+
+def make_rpc_call(client, target_query, method, args, kwargs):
+    instruction = {
+        'method': method,
+        'args': args,
+        'kwargs': kwargs
+    }
+
+    data = client.submit(target_query, instruction)
+    return json.dumps(data, indent=2)
