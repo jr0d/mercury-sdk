@@ -22,6 +22,7 @@ class Job(object):
         self.instruction = instruction
 
         self.job_id = None
+        self.targets = 0
 
     @property
     def started(self):
@@ -41,6 +42,7 @@ class Job(object):
             raise RPCException(r['data']['message'])
 
         self.job_id = r['job_id']
+        self.targets = r['targets']
 
     @property
     def raw(self):

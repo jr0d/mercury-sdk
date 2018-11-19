@@ -44,12 +44,29 @@ def get_rpc_client(configuration, token=None):
         auth_token=token)
 
 
-def make_rpc_call(client, target_query, method, args, kwargs):
-    instruction = {
-        'method': method,
-        'args': args,
-        'kwargs': kwargs
-    }
+def make_rpc(client, target_query, method, job_args, job_kwargs, wait=False):
+    _job = job.SimpleJob(client, target_query, method, job_args, job_kwargs)
+    _job.start()
 
-    data = client.submit(target_query, instruction)
-    return json.dumps(data, indent=2)
+    if not wait:
+        return json.dumps({
+            'job_id': _job.job_id,
+            'targets': _job.targets
+        }, indent=2)
+
+    # Blocks and waits for RPC task to complete
+    _job.join(poll_interval=1)
+
+    return json.dumps(_job.tasks, indent=2)
+
+
+def get_job(client, job_id):
+    return json.dumps(client.get(job_id), indent=2)
+
+
+def get_status(client, job_id):
+    return json.dumps(client.status(job_id), indent=2)
+
+
+def get_tasks(client, job_id):
+    return json.dumps(client.tasks(job_id), indent=2)
