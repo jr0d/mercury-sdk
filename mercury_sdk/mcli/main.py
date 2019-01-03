@@ -1,16 +1,16 @@
 import argparse
+import colorama
 import json
 import logging
 import os
 import pkg_resources
 
-import colorama
-
-from mercury_sdk.mcli.configuration import configuration_from_yaml
-from mercury_sdk.mcli.auth import auth as mcli_auth
-from mercury_sdk.mcli import output
 from mercury_sdk.mcli import operations
+from mercury_sdk.mcli import output
+from mercury_sdk.mcli import press
 from mercury_sdk.mcli import shell
+from mercury_sdk.mcli.auth import auth as mcli_auth
+from mercury_sdk.mcli.configuration import configuration_from_yaml
 
 LOG = logging.getLogger(__name__)
 
@@ -29,6 +29,12 @@ MERCURY_API_USERNAME_ENV = 'MERCURY_API_USERNAME'
 MERCURY_API_QUERY_ENV = 'MERCURY_API_QUERY'
 
 program_version = pkg_resources.get_distribution('mercury-sdk').version
+
+query_help = """A mercury query to execute in valid JSON.
+Use "-" and the value will be read from 
+stdout use "@filename" and the query will be 
+read from this file
+"""
 
 
 def options():
@@ -84,10 +90,7 @@ def options():
     inv_parser = subparsers.add_parser('inventory',
                                        help='Inventory query operations')
     inv_parser.add_argument('-q', '--query', default='{}',
-                            help='A mercury query to execute in valid JSON. '
-                                 'Use "-" and the value will be read from '
-                                 'stdout use "@filename" and the query will be '
-                                 'read from this file')
+                            help=query_help)
     inv_parser.add_argument('-p', '--projection', default='',
                             help='Specify the key projection to produce the '
                                  'desired output')
@@ -107,10 +110,7 @@ def options():
     rpc_submit_parser = rpc_subparsers.add_parser('submit',
                                                   help='Submit a job')
     rpc_submit_parser.add_argument('-q', '--query',
-                                   help='A mercury query to execute in valid JSON. '
-                                        'Use "-" and the value will be read from '
-                                        'stdout use "@filename" and the query will be '
-                                        'read from this file'
+                                   help=query_help
                                    )
     rpc_submit_parser.add_argument('-t', '--target',
                                    help='A single mercury id to run the command on')
@@ -126,6 +126,7 @@ def options():
                                 help='Get status information for tasks')
     rpc_job_parser.add_argument('-t', '--tasks', action='store_true',
                                 help='Get task data')
+
     # shell
     shell_parser = subparsers.add_parser(
         'shell',
@@ -142,6 +143,24 @@ def options():
                               help='Suppress command output')
     shell_parser.add_argument('--raw', default=False, action='store_true',
                               help='Do not print agent info, only the raw command output')
+
+    # press
+    press_parser = subparsers.add_parser('press',
+                                         help='Install an operating system to /mnt/press')
+    press_parser.add_argument('-c', '--configuration', dest='press_configuration',
+                              help='The path to a press configuration in yaml format')
+    press_parser.add_argument('-t', '--target', help='The mercury_id of a single target')
+    press_parser.add_argument('-w', '--wait', action='store_true',
+                              help='Wait for the job to complete and print the results')
+
+    # deployment
+    deployment_parser = subparsers.add_parser(
+        'deploy',
+        help='[EXPERIMENTAL] Deploy many servers at once using an asset file')
+    deployment_parser.add_argument(
+        '-q', '--query', help=query_help)
+    deployment_parser.add_argument(
+        '-a', '--asset-backend', help='The asset backend plugin to use')
 
     namespace = parser.parse_args()
     if namespace.version:
@@ -231,6 +250,10 @@ def router(command, configuration):
                 data = operations.get_job(rpc_client, configuration['job_id'])
 
             print(data)
+
+    if command == 'press':
+        rpc_client, target_query = _prepare_rpc()
+        press.press_server(rpc_client, target_query, configuration['press_configuration'])
 
     if command == 'shell':
         rpc_client, target_query = _prepare_rpc()

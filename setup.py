@@ -12,8 +12,7 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-from setuptools import setup
-
+from setuptools import setup, find_packages
 
 def get_version():
     with open('VERSION') as fp:
@@ -23,7 +22,7 @@ def get_version():
 setup(
     name='mercury-sdk',
     version=get_version(),
-    packages=['mercury_sdk'],
+    packages=find_packages(exclude=['tests']),
     url='http://www.mercurysoft.io',
     license='Apache-2.0',
     author='Jared Rodriguez',
