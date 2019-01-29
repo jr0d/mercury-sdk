@@ -22,8 +22,9 @@ def press_server(client, target_query, configuration, wait=False):
     try:
         _job = job.SimpleJob(client, target_query, 'press',
                              job_kwargs={
-                                 'configuration': configuration_from_yaml(
-                                     configuration)})
+                                 'configuration':
+                                     operations.read_data_from_file_or_stdin(
+                                         configuration)})
     except (IOError, OSError) as e:
         output.print_and_exit(
             'Could not load configuration file: {}'.format(e), 1)

@@ -1,7 +1,12 @@
+import sys
 import json
+import yaml
+
 from mercury_sdk.http import inventory, rpc
 from mercury_sdk.rpc import job
 from mercury_sdk.mcli import output
+
+MAX_INPUT_SIZE = 2**20  # 1MiB
 
 
 def get_inventory_client(configuration, token=None):
@@ -12,12 +17,47 @@ def get_inventory_client(configuration, token=None):
     )
 
 
-def query_inventory(client, configuration):
+def read_data_from_file_or_stdin(path=None):
+    if not path:
+        fp = sys.stdin
+    else:
+        fp = open(path)
+
+    raw = fp.read(MAX_INPUT_SIZE)
+
+    if fp.read(1):
+        raise RuntimeError('Input is too large')
+
+    fp.close()
+
+    parsed = None
+
     try:
-        query = json.loads(configuration['query'])
+        parsed = json.loads(raw)
     except ValueError:
-        output.print_and_exit('Query is not valid json', 1)
-        return
+        pass
+
+    if not parsed:
+        try:
+            parsed = yaml.safe_load(raw)
+        except ValueError:
+            raise RuntimeError('Input data is not valid JSON/YAML')
+
+    return parsed
+
+
+def query_inventory(client, configuration):
+    raw = configuration['query']
+    if raw == '-':
+        query = read_data_from_file_or_stdin()
+    elif raw and raw[0] == '@':
+        query = read_data_from_file_or_stdin(raw[1:])
+    else:
+        try:
+            query = json.loads(configuration['query'])
+        except ValueError:
+            output.print_and_exit('Query is not valid json', 1)
+            return
 
     if configuration.get('active'):
         query.update({'active': {'$ne': None}})
