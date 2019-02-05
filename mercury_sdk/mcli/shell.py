@@ -1,4 +1,5 @@
 import logging
+import sys
 # TODO: modify cmd2 to support this use case
 # import cmd2
 
@@ -20,6 +21,8 @@ class MercuryShell:
         self.quiet = quiet
 
     def run_job(self, instruction):
+        if instruction == '-':
+            instruction = sys.stdin.readline().strip()
         instruction = 'bash -c "{}"'.format(instruction)
         s = SimpleJob(self.rpc_client, self.query, 'run',
                       job_args=[instruction])

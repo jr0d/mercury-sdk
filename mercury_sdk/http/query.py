@@ -40,6 +40,7 @@ class QueryInterfaceBase(InterfaceBase):
                 if isinstance(item[key], list):
                     item[key] = [el for el in item[key] if el]
 
+    # TODO: Add pagenation support
     def query(self, query, item='/query', projection=None, params=None,
               extra_headers=None, strip_empty_elements=False):
         """

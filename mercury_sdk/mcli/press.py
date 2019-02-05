@@ -1,24 +1,38 @@
 import json
 
-import yaml
+import pystache
 
 from mercury_sdk.mcli import operations
 from mercury_sdk.mcli import output
 from mercury_sdk.rpc import job
 
-
-def configuration_from_yaml(filename):
-    """Loads a YAML configuration file.
-
-    :param filename: The filename of the file to load.
-    :returns: dict -- A dictionary representing the YAML configuration file
-        loaded. If the file can't be loaded, then the empty dict is returned.
-    """
-    with open(filename) as infile:
-        return yaml.load(infile.read())
+# TODO: Implement guards once pagenation support is added
+MAX_ITEMS = 100
 
 
-def press_server(client, target_query, configuration, wait=False):
+def render_configuration(asset_data, configuration):
+    return pystache.render(configuration, **asset_data)
+
+
+def press_multiple(client, active_client, query, configuration,
+                   assets=None, asset_backend=None, wait=False):
+    if assets or asset_backend:
+        # pre-query for matching mercury_ids
+        matches = active_client.query(query, projection=['mercury_id'])['items']
+        if not matches:
+            output.print_and_exit('Query matches no active computers')
+    pass
+
+
+def press_single_server(client, target, configuration, assets=None,
+                        asset_backend=None, wait=False):
+    target_query = {'mercury_id': target}
+
+    if assets or asset_backend:
+        if assets:
+            configuration = render_configuration(assets, configuration)
+        print(configuration)
+        output.print_and_exit('')
     try:
         _job = job.SimpleJob(client, target_query, 'press',
                              job_kwargs={

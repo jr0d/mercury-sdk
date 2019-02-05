@@ -5,6 +5,7 @@ import logging
 import os
 import pkg_resources
 
+from mercury_sdk.http import active
 from mercury_sdk.mcli import operations
 from mercury_sdk.mcli import output
 from mercury_sdk.mcli import press
@@ -119,7 +120,9 @@ def options():
     rpc_submit_parser.add_argument('-k', '--kwargs', default='{}')
     rpc_submit_parser.add_argument('-w', '--wait', action='store_true',
                                    help='Wait for the job to complete and print the results')
-
+    rpc_submit_parser.add_argument('--instruction-from',
+                                   help='The path of a file containing a properly formatted '
+                                        'rpc instruction')
     rpc_job_parser = rpc_subparsers.add_parser('job', help='Get information about a job')
     rpc_job_parser.add_argument('job_id', help='A mercury job_id')
     rpc_job_parser.add_argument('-s', '--status', action='store_true',
@@ -138,7 +141,8 @@ def options():
     shell_parser.add_argument('-r', '--run', default=None,
                               help='Instead of entering the shell,'
                                    'run the command, print the result, and '
-                                   'exit')
+                                   'exit. If the argument value is \'-\', the command '
+                                   'is read from stdin')
     shell_parser.add_argument('--quiet', default=False, action='store_true',
                               help='Suppress command output')
     shell_parser.add_argument('--raw', default=False, action='store_true',
@@ -148,11 +152,17 @@ def options():
     press_parser = subparsers.add_parser('press',
                                          help='Install an operating system to /mnt/press')
     press_parser.add_argument('-c', '--configuration', dest='press_configuration',
-                              help='The path to a press configuration in yaml format')
+                              help='The path to a press configuration file or mustache template')
+    press_parser.add_argument('-q', '--query', help=query_help)
     press_parser.add_argument('-t', '--target', help='The mercury_id of a single target')
     press_parser.add_argument('-w', '--wait', action='store_true',
                               help='Wait for the job to complete and print the results')
-
+    press_parser.add_argument('-a', '--assets',
+                              help='Valid json or a path to an asset file used to '
+                                   'render values in a configuration template.')
+    press_parser.add_argument('--asset-backend',
+                              help='The path to an executable which takes one or more '
+                                   'mercuryIds as positional arguments')
     # deployment
     deployment_parser = subparsers.add_parser(
         'deploy',
@@ -209,16 +219,16 @@ def router(command, configuration):
 
     def _prepare_rpc():
         _rpc_client = operations.get_rpc_client(configuration, token)
-        query = configuration.get('query')
-        target = configuration.get('target')
-        if query:
+        _query = configuration.get('query')
+        _target = configuration.get('target')
+        if _query:
             try:
-                _target_query = json.loads(configuration['query'])
+                _target_query = json.loads(_query)
             except ValueError:
                 output.print_and_exit('query is not valid JSON')
                 return
-        elif target:
-            _target_query = {'mercury_id': target.strip()}
+        elif _target:
+            _target_query = {'mercury_id': _target.strip()}
         else:
             output.print_and_exit('Must provide a query or target')
             return
@@ -229,11 +239,17 @@ def router(command, configuration):
         rpc_command = configuration['rpc_command']
         if rpc_command == 'submit':
             rpc_client, target_query = _prepare_rpc()
-            kwargs = json.loads(configuration['kwargs'])
+            if configuration['instruction_from']:
+                method, args, kwargs = operations.get_instruction_from_file(
+                    configuration['instruction_from'])
+            else:
+                method = configuration['method']
+                args = configuration['args']
+                kwargs = json.loads(configuration['kwargs'])
             print(operations.make_rpc(rpc_client,
                                       target_query,
-                                      configuration['method'],
-                                      configuration['args'],
+                                      method,
+                                      args,
                                       kwargs,
                                       wait=configuration.get('wait')))
         if rpc_command == 'job':
@@ -252,8 +268,26 @@ def router(command, configuration):
             print(data)
 
     if command == 'press':
-        rpc_client, target_query = _prepare_rpc()
-        press.press_server(rpc_client, target_query, configuration['press_configuration'])
+        rpc_client = operations.get_rpc_client(configuration, token)
+        target = configuration['target']
+        if target:
+            press.press_single_server(rpc_client,
+                                      target,
+                                      configuration['press_configuration'],
+                                      assets=configuration['assets'],
+                                      asset_backend=configuration['asset_backend'])
+        else:
+            query = configuration['query']
+            if not query:
+                output.print_and_exit('Either target or query must be defined', 1)
+
+            press.press_multiple(rpc_client,
+                                 active.ActiveComputers(rpc_client.target,
+                                                        auth_token=token),
+                                 query,
+                                 configuration['press_configuration'],
+                                 assets=configuration['assets'],
+                                 asset_backend=configuration['asset_backend'])
 
     if command == 'shell':
         rpc_client, target_query = _prepare_rpc()

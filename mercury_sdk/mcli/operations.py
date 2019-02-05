@@ -1,5 +1,6 @@
-import sys
+import os
 import json
+import sys
 import yaml
 
 from mercury_sdk.http import inventory, rpc
@@ -18,7 +19,7 @@ def get_inventory_client(configuration, token=None):
 
 
 def read_data_from_file_or_stdin(path=None):
-    if not path:
+    if not os.path.expanduser(path):
         fp = sys.stdin
     else:
         fp = open(path)
@@ -82,6 +83,22 @@ def get_rpc_client(configuration, token=None):
     return rpc.JobInterfaceBase(
         configuration['mercury_url'],
         auth_token=token)
+
+
+def get_instruction_from_file(path):
+    data = read_data_from_file_or_stdin(path)
+    if 'instruction' in data:
+        # If format is {instruction: data}
+        data = data['instruction']
+    try:
+        method = data['method']
+    except KeyError:
+        output.print_and_exit('Instruction is malformed', 1)
+        return
+
+    args = data.get('args', [])
+    kwargs = data.get('kwargs', {})
+    return method, args, kwargs
 
 
 def make_rpc(client, target_query, method, job_args, job_kwargs, wait=False):
