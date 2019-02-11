@@ -33,7 +33,7 @@ setup(
         'PyYaml',
         'cmd2',
         'python-dateutil',
-        'colorama'
+        'colorama', 'pystache'
     ],
     entry_points={
        'console_scripts': [

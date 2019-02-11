@@ -1,6 +1,9 @@
 import json
-import pystache
+import os
 import subprocess
+import tempfile
+
+import pystache
 
 from mercury_sdk.http import active
 from mercury_sdk.mcli import operations
@@ -22,7 +25,39 @@ def get_active_matches(rpc_client, query):
 
     return active_client.query(query, projection=['mercury_id'])['items']
 
-def call_asset_backend(matches, path):
+
+def call_asset_backend(matches, executable):
+    with tempfile.TemporaryDirectory as workdir:
+        assetdb = os.path.join(workdir, 'assets.json')
+        command = [executable, workdir]
+        with open(os.path.join(workdir, 'matches.txt')) as matches_file:
+            for match in matches:
+                matches_file.write('{}\n'.format(match))
+
+        try:
+            p = subprocess.Popen(command)
+            p.wait()
+        except OSError as os_error:
+            output.print_and_exit(2, 'Could not run backend: {} : {}'.format(executable, os_error))
+            return
+
+        if p.returncode:
+            output.print_and_exit(
+                2, 'The backend entry returned an error : Error code: {}'.format(p.returncode))
+
+        if not os.path.exists(assetdb):
+            output.print_and_exit(2, 'The backend failed to create the asset database')
+
+        with open(assetdb) as adb_fp:
+            return json.load(adb_fp)
+
+
+def generate_assets():
+    pass
+
+
+def press_multiple(rpc_client, query, assetdb):
+
 
 def press(rpc_client,
           query_or_target,
@@ -44,22 +79,18 @@ def press(rpc_client,
         if asset_file_path:
             assets.update(operations.read_data_from_file_or_stdin(asset_file_path))
 
-        if not single_target:
-            matches = get_active_matches(rpc_client, query)
-            if not matches:
-                output.print_and_exit('Query did not match any targets')
+        if asset_backend_path:
+            if not single_target:
+                matches = get_active_matches(rpc_client, query)
+                if not matches:
+                    output.print_and_exit('Query did not match any targets')
+            else:
+                matches = [query_or_target]
 
+            assets.update(call_asset_backend(matches, asset_backend_path))
 
-
-
-def press_multiple(client, active_client, query, configuration,
-                   assets=None, asset_backend=None, wait=False):
-    if assets or asset_backend:
-        # pre-query for matching mercury_ids
-        matches = active_client.query(query, projection=['mercury_id'])['items']
-        if not matches:
-            output.print_and_exit('Query matches no active computers')
-    pass
+        if extra_assets and single_target:
+            assets.update(extra_assets)
 
 
 def press_single_server(client, target, configuration, assets=None,
