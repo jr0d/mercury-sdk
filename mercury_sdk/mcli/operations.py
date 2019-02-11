@@ -7,7 +7,7 @@ from mercury_sdk.http import inventory, rpc
 from mercury_sdk.rpc import job
 from mercury_sdk.mcli import output
 
-MAX_INPUT_SIZE = 2**20  # 1MiB
+MAX_INPUT_SIZE = 20*2**20  # 20MiB
 
 
 def get_inventory_client(configuration, token=None):

@@ -1,7 +1,8 @@
 import json
-
 import pystache
+import subprocess
 
+from mercury_sdk.http import active
 from mercury_sdk.mcli import operations
 from mercury_sdk.mcli import output
 from mercury_sdk.rpc import job
@@ -12,6 +13,43 @@ MAX_ITEMS = 100
 
 def render_configuration(asset_data, configuration):
     return pystache.render(configuration, **asset_data)
+
+
+def get_active_matches(rpc_client, query):
+    # Assemble an active client from the rpc client we already have
+    active_client = active.ActiveComputers(rpc_client.target)
+    active_client.headers.update(rpc_client.headers)
+
+    return active_client.query(query, projection=['mercury_id'])['items']
+
+def call_asset_backend(matches, path):
+
+def press(rpc_client,
+          query_or_target,
+          press_configuration,
+          asset_file_path=None,
+          asset_backend_path=None,
+          extra_assets=None,
+          wait=False):
+
+    if isinstance(query_or_target, str):
+        query = {'mercury_id': query_or_target}
+        single_target = True
+    else:
+        query = query_or_target
+        single_target = False
+
+    if asset_file_path or asset_backend_path or extra_assets:
+        assets = {}
+        if asset_file_path:
+            assets.update(operations.read_data_from_file_or_stdin(asset_file_path))
+
+        if not single_target:
+            matches = get_active_matches(rpc_client, query)
+            if not matches:
+                output.print_and_exit('Query did not match any targets')
+
+
 
 
 def press_multiple(client, active_client, query, configuration,

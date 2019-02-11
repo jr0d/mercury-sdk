@@ -157,12 +157,15 @@ def options():
     press_parser.add_argument('-t', '--target', help='The mercury_id of a single target')
     press_parser.add_argument('-w', '--wait', action='store_true',
                               help='Wait for the job to complete and print the results')
-    press_parser.add_argument('-a', '--assets',
-                              help='Valid json or a path to an asset file used to '
+    press_parser.add_argument('-a', '--asset-file',
+                              help='A path to an asset file (JSON/YAML) used to '
                                    'render values in a configuration template.')
     press_parser.add_argument('--asset-backend',
                               help='The path to an executable which takes one or more '
                                    'mercuryIds as positional arguments')
+    press_parser.add_argument('--extra-assets',
+                              help='Valid JSON containing extra asset data to override/'
+                                   'supplement an asset file or backend')
     # deployment
     deployment_parser = subparsers.add_parser(
         'deploy',
