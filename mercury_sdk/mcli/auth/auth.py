@@ -13,12 +13,12 @@ __auth_handler = None
 
 def write_token(token_data, path):
     with open(path, 'w') as token_file:
-        yaml.dump(token_data, stream=token_file)
+        yaml.safe_dump(token_data, stream=token_file)
 
 
 def read_token(path):
     with open(path) as fp:
-        return yaml.load(fp)
+        return yaml.safe_load(fp)
 
 
 # TODO: learn handler names but searching the auth directory
