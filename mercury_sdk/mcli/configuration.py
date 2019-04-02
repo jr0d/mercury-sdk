@@ -1,16 +1,13 @@
 import yaml
 
+from mercury_sdk.mcli import output
 
-def configuration_from_yaml(filename):
-    """Loads a YAML configuration file.
 
-    :param filename: The filename of the file to load.
-    :returns: dict -- A dictionary representing the YAML configuration file
-        loaded. If the file can't be loaded, then the empty dict is returned.
-    """
+def read_config(path):
     try:
-        with open(filename) as infile:
-            return yaml.safe_load(infile.read())
-    except IOError:
-        return {}
-
+        with open(path) as fp:
+            return yaml.safe_load(fp)
+    except OSError as os_error:
+        output.print_and_exit("Error opening or reading file: {}".format(os_error))
+    except ValueError as v_error:
+        output.print_and_exit("Error deserializing YAML file: {}".format(v_error))

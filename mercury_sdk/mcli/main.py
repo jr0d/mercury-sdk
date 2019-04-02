@@ -5,12 +5,14 @@ import logging
 import os
 import pkg_resources
 
+from mercury_sdk.mcli import ansible
 from mercury_sdk.mcli import operations
 from mercury_sdk.mcli import output
 from mercury_sdk.mcli import press
+from mercury_sdk.mcli.deploy import static_assets
 from mercury_sdk.mcli import shell
 from mercury_sdk.mcli.auth import auth as mcli_auth
-from mercury_sdk.mcli.configuration import configuration_from_yaml
+from mercury_sdk.mcli.configuration import read_config
 
 LOG = logging.getLogger(__name__)
 
@@ -59,6 +61,7 @@ def options():
                         help='Verbosity level -v, somewhat verbose, -vvv '
                              'really verbose')
 
+    parser.add_argument('--no-auth', action='store_true', help='Skip authentication')
     subparsers = parser.add_subparsers(dest='command', help='<command> --help')
 
     # login
@@ -127,6 +130,9 @@ def options():
     rpc_job_parser.add_argument('-t', '--tasks', action='store_true',
                                 help='Get task data')
 
+    rpc_list_parser = rpc_subparsers.add_parser('list', help='list device capabilities')
+    rpc_list_parser.add_argument('target', help='The mercury id of the target')
+
     # shell
     shell_parser = subparsers.add_parser(
         'shell',
@@ -158,9 +164,22 @@ def options():
         'deploy',
         help='[EXPERIMENTAL] Deploy many servers at once using an asset file')
     deployment_parser.add_argument(
-        '-q', '--query', help=query_help)
-    deployment_parser.add_argument(
-        '-a', '--asset-backend', help='The asset backend plugin to use')
+        '-q', '--query', help=query_help, required=True)
+    # deployment_parser.add_argument(
+    #     '-a', '--asset-backend', help='The asset backend plugin to use')
+    deployment_parser.add_argument('--template', required=True)
+    deployment_parser.add_argument("--hostname", default='')
+
+    # ansible helpers
+    ansible_parser = subparsers.add_parser(
+        'ansible',
+        help='Helper commands for ansible'
+    )
+    ansible_sub_parsers = ansible_parser.add_subparsers(dest="ansible_command")
+    ansible_inventory_parser = ansible_sub_parsers.add_parser('inventory')
+    ansible_inventory_parser.add_argument("-q", "--query", required=True)
+    ansible_inventory_parser.add_argument("-u", "--user", default='root')
+    ansible_inventory_parser.add_argument("--hostname-template", default='')
 
     namespace = parser.parse_args()
     if namespace.version:
@@ -195,7 +214,7 @@ def router(command, configuration):
         mcli_auth.invalidate_token(configuration, TOKEN_CACHE)
         return
 
-    if configuration['auth'] and configuration['auth_handler']:
+    if not configuration['no_auth'] and configuration['auth'] and configuration['auth_handler']:
         token = mcli_auth.get_token(configuration, TOKEN_CACHE)['token']
     else:
         token = None
@@ -205,7 +224,7 @@ def router(command, configuration):
         if configuration.get('mercury_id'):
             print(operations.get_inventory(inv_client, configuration))
         else:
-            print(operations.query_inventory(inv_client, configuration))
+            print(operations.json_format(operations.query_inventory(inv_client, configuration)))
 
     def _prepare_rpc():
         _rpc_client = operations.get_rpc_client(configuration, token)
@@ -251,9 +270,16 @@ def router(command, configuration):
 
             print(data)
 
+        if rpc_command == 'list':
+            inv_client = operations.get_inventory_client(configuration, token)
+            data = inv_client.get(configuration.get('target'), projection=['active'])
+            if not data['active']:
+                output.print_and_exit('{} is not active'.format(configuration['target']))
+            output.print_rpc_capabilities(data['active'])
+
     if command == 'press':
         rpc_client, target_query = _prepare_rpc()
-        press.press_server(rpc_client, target_query, configuration['press_configuration'])
+        print(press.press_server(rpc_client, target_query, configuration['press_configuration']))
 
     if command == 'shell':
         rpc_client, target_query = _prepare_rpc()
@@ -266,6 +292,27 @@ def router(command, configuration):
         else:
             mshell.input_loop()
 
+    if command == 'ansible':
+        ansible_command = configuration['ansible_command']
+        if ansible_command == 'inventory':
+            inv_client = operations.get_inventory_client(configuration, token)
+            print(ansible.inventory.build_ansible_inventory(
+                inv_client,
+                configuration['query'],
+                configuration['user'],
+                configuration['hostname_template']))
+
+    if command == 'deploy':
+        inv_client = operations.get_inventory_client(configuration, token)
+        rpc_client, target_query = _prepare_rpc()
+
+        # print(operations.json_format(press.build_press_asset_db_from_inv(
+        #     inv_client, configuration['query'], configuration['hostname'])))
+
+        static_assets.press_static_preprocessor(
+            rpc_client, inv_client, configuration['template'], configuration['query'],
+            configuration['hostname'])
+
 
 def main():
     colorama.init(autoreset=True)
@@ -273,7 +320,12 @@ def main():
 
     if not os.path.exists(namespace.program_directory):
         os.makedirs(namespace.program_directory, 0o700)
-    configuration = configuration_from_yaml(namespace.config_file) or {}
+
+    if os.path.isfile(namespace.config_file):
+        configuration = read_config(namespace.config_file)
+    else:
+        configuration = {}
+
     output.setup_logging(namespace.verbosity)
 
     program_configuration = merge_configuration(namespace, configuration)
