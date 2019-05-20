@@ -6,8 +6,14 @@ import colorama
 from mercury_sdk.rpc.job import SimpleJob
 
 LOG = logging.getLogger(__name__)
-PROMPT = f'{colorama.Style.BRIGHT}{colorama.Fore.LIGHTBLUE_EX}(♀)︎{colorama.Fore.MAGENTA}~>' \
-         f'{colorama.Style.RESET_ALL} '
+# PROMPT = f'{colorama.Style.BRIGHT}{colorama.Fore.LIGHTBLUE_EX}(♀)︎{colorama.Fore.MAGENTA}~>' \
+#          f'{colorama.Style.RESET_ALL} '
+
+PROMPT = '{}{}(♀)︎{}~>{} '.format(
+    colorama.Style.BRIGHT,
+    colorama.Fore.LIGHTBLUE_EX,
+    colorama.Fore.MAGENTA,
+    colorama.Style.RESET_ALL)
 
 
 class MercuryShell:
@@ -30,7 +36,8 @@ class MercuryShell:
                 if not self.raw:
                     co = colorama.Fore.CYAN if t['message']['returncode'] == 0 \
                         else colorama.Fore.LIGHTRED_EX
-                    print(f'{co}{t["mercury_id"]}{colorama.Style.RESET_ALL}\n')
+                    # print(f'{co}{t["mercury_id"]}{colorama.Style.RESET_ALL}\n')
+                    print('{}{}{}\n'.format(co, t["mercury_id"], colorama.Style.RESET_ALL))
                 stdout = t['message']['stdout']
                 if stdout:
                     print(stdout)

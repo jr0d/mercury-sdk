@@ -7,29 +7,39 @@ from mercury_sdk.mcli import output
 def get_inventory_client(configuration, token=None):
     return inventory.InventoryComputers(
         configuration['mercury_url'],
-        max_items=configuration['max_items'],
+        max_items=configuration.get('max_items', 250),
         auth_token=token
     )
 
 
-def query_inventory(client, configuration):
+def json_format(data):
+    return json.dumps(data, indent=2)
+
+
+def make_query(client, q, projection, limit, strip_empty):
+    return client.query(
+        q, projection=projection, params={"limit": limit}, strip_empty_elements=strip_empty)
+
+
+def de(data):
     try:
-        query = json.loads(configuration['query'])
+        return json.loads(data)
     except ValueError:
         output.print_and_exit('Query is not valid json', 1)
         return
 
+
+def query_inventory(client, configuration):
+    query = de(configuration['query'])
     if configuration.get('active'):
         query.update({'active': {'$ne': None}})
 
-    data = client.query(
+    return make_query(
+        client,
         query,
         projection=configuration['projection'].split(','),
-        params={'limit': configuration['max_items']},
-        strip_empty_elements=True
-    )
-
-    return json.dumps(data, indent=2)
+        limit=configuration['max_items'],
+        strip_empty=True)
 
 
 def get_inventory(client, configuration):

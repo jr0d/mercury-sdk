@@ -1,0 +1,1 @@
+from mercury_sdk.mcli.ansible import inventory
