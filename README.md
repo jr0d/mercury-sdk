@@ -4,11 +4,11 @@ the Mercury HTTP API service as well as the Mercury CLI, `mcli`.
 
 
 ## Installation
-    # pip install mercury-sdk==0.0.14.dev1
+    $ pip install mercury-sdk==0.0.14.dev1
     
 ## MCLI
 ### Configuration
-    # mkdir -p ~/.mercury-sdk
+    $ mkdir -p ~/.mercury-sdk
 
 #### ~/.mercury_sdk/mcli.yml
     mercury_api:
@@ -17,7 +17,7 @@ the Mercury HTTP API service as well as the Mercury CLI, `mcli`.
 #### Authentication with Keystone
 mcli current provides a keystonev2 frontend. If your API is provisioned
 behind a repose proxy with keystone integration you may add something
-similar to your `mcli.yaml`
+similar to your `mcli.yml`
 
     auth_handler: keystone
 
